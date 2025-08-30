@@ -12,14 +12,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ---- MongoDB ----
 const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/urlshortener';
 
 mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log(" Connected to MongoDB Atlas"))
   .catch(err => console.error(" MongoDB connection error:", err));
 
-// Counter schema to produce numeric short_url
 const counterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   seq: { type: Number, default: 0 }
@@ -32,7 +30,6 @@ const urlSchema = new mongoose.Schema({
 });
 const Url = mongoose.model('Url', urlSchema);
 
-// helper to get next sequence number (atomic)
 async function getNextSequence(name) {
   const ret = await Counter.findOneAndUpdate(
     { _id: name },
@@ -42,21 +39,17 @@ async function getNextSequence(name) {
   return ret.seq;
 }
 
-// ---- Routes ----
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-// Debug route to confirm DB connection
 app.get('/api/debug', (req, res) => {
   res.json({ mongoUri });
 });
 
-// POST to create short URL
 app.post('/api/shorturl', async (req, res) => {
   const input = (req.body.url || req.body.input || '').toString().trim();
 
-  // Basic parse check using URL constructor
   let hostname;
   try {
     const parsed = new URL(input);
@@ -65,14 +58,12 @@ app.post('/api/shorturl', async (req, res) => {
     return res.json({ error: 'invalid url' });
   }
 
-  // Use dns.lookup to verify hostname resolves
   dns.lookup(hostname, async (dnsErr) => {
     if (dnsErr) {
       return res.json({ error: 'invalid url' });
     }
 
     try {
-      // If URL already stored, return existing short_url
       const found = await Url.findOne({ original_url: input }).exec();
       if (found) {
         return res.json({ original_url: found.original_url, short_url: found.short_url });
@@ -90,7 +81,6 @@ app.post('/api/shorturl', async (req, res) => {
   });
 });
 
-// Redirect endpoint
 app.get('/api/shorturl/:short', async (req, res) => {
   const short = parseInt(req.params.short, 10);
   if (Number.isNaN(short)) {
@@ -106,8 +96,7 @@ app.get('/api/shorturl/:short', async (req, res) => {
   }
 });
 
-// Start server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`🚀 Server listening on port ${port}`);
+  console.log(` Server listening on port ${port}`);
 });
