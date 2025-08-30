@@ -68,7 +68,6 @@ app.post('/api/shorturl', async (req, res) => {
       if (found) {
         return res.json({ original_url: found.original_url, short_url: found.short_url });
       }
-
       const next = await getNextSequence('url_count');
       const newUrl = new Url({ original_url: input, short_url: next });
       await newUrl.save();
